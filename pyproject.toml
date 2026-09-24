@@ -1,0 +1,21 @@
+[project]
+name = "hr-assistant"
+version = "0.1.0"
+description = "HR Assistant: chat RAG per trovare il candidato ideale tra i curriculum"
+authors = [
+    {name = "Giuseppe Giannelli", email = "peppegiannelli@hotmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "chromadb (>=1.5.0,<2.0.0)",
+    "openai (>=3.0.0,<4.0.0)",
+    "chainlit (>=2.12.0,<3.0.0)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
