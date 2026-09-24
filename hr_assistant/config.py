@@ -1,0 +1,40 @@
+# config.py
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class Config:
+    DOCUMENTS_DIR = "resumes"
+    PERSISTENT_DIR = "data/chromadb"
+    N_FIRST_LINES = 10  # righe iniziali del CV usate per ricavare il nome del candidato
+
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+    # Provider: "openai" o "ollama". Se non indicato: openai se c'è la chiave, altrimenti ollama
+    PROVIDER = os.getenv("PROVIDER", "").strip().lower() or ("openai" if OPENAI_API_KEY else "ollama")
+
+    if PROVIDER == "openai":
+        # Completamento
+        LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+        AI_API_URL = "https://api.openai.com/v1/"
+        AI_API_KEY = OPENAI_API_KEY
+        # Embedding
+        EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    else:
+        # Completamento
+        LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "llama3.2")  # oppure "deepseek-r1:1.5b"
+        AI_API_URL = f"{OLLAMA_URL}/v1"
+        AI_API_KEY = "ollama"
+        # Embedding
+        EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
+
+    # Una collezione per provider/modello: embeddings di modelli diversi non sono compatibili
+    COLLECTION_NAME = f"CVs_{PROVIDER}_{EMBED_MODEL}".replace(":", "-").replace("/", "-")
+
+    @classmethod
+    def info(cls):
+        return f"Provider: {cls.PROVIDER} | LLM: {cls.LLM_MODEL} | Embeddings: {cls.EMBED_MODEL}"
