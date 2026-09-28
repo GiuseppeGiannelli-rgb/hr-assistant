@@ -45,7 +45,8 @@ class DocumentProcessor:
         if Config.CHUNKING == "headers":
             chunks = txt.replace("\n", ".").split("### ")
         else:
-            chunks = SemanticChunking.chunk_it(txt, embedding_fn)
+            sc = SemanticChunking(embedding_fn, Config.CHUNK_BREAKPOINT_PERCENTILE)
+            chunks = sc.chunk_text(txt)
 
         for i, chunk in enumerate(chunks):
             if not chunk.isspace() and not chunk == "":

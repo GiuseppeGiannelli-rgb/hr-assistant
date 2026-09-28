@@ -48,6 +48,13 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - `CHUNKING=headers` nel `.env` torna al vecchio chunking sulle intestazioni `### `
 - Ogni strategia di chunking ha la sua collezione: cambiandola i CV vengono reindicizzati da capo
 
+## Avanzamento 7 — Refactoring Semantic Chunking
+
+- `SemanticChunking` diventa una classe configurabile: `SemanticChunking(embedding_fn, breakpoint_percentile, buffer_size)` con il metodo `chunk_text()`
+- Logica divisa in passi piccoli: `_process_sentences` (frasi + contesto), `_calculate_distances` (distanze coseno), `chunk_text` (tagli sul percentile)
+- Stesso risultato della versione precedente, codice più corto e leggibile
+- Il percentile si regola da `.env` con `CHUNK_BREAKPOINT_PERCENTILE`
+
 ## Installazione
 
 ```bash
