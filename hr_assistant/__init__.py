@@ -72,17 +72,19 @@ async def start():
     await cl.Message(content="Informazioni del sistema:", actions=actions).send()
 
 
-@cl.on_message
-async def handle_message(message: cl.Message):
-    user_question = message.content
+def build_search_prompt(user_question):
+    """Cerca il CV più adatto e prepara il prompt. Restituisce (prompt, nome file) oppure (None, None)."""
     results = db.query(user_question, 3)
+
+    if not results["documents"] or not results["documents"][0]:
+        return None, None
 
     filename = results["metadatas"][0][0]["source"]
 
     # Prime righe del CV: nome, email e telefono arrivano nel contesto,
     # così non serve più una seconda chiamata all'LLM per ricavare il nome
     candidate_info = DocumentProcessor.read_first_lines(
-        os.path.join(Config.DOCUMENTS_DIR, filename), 10
+        os.path.join(Config.DOCUMENTS_DIR, filename), Config.N_FIRST_LINES
     )
 
     # Tra i 3 chunk più vicini usiamo quelli dello stesso CV del primo risultato
@@ -96,8 +98,44 @@ async def handle_message(message: cl.Message):
         f"CONTESTO: nome file {filename} ecco i paragrafi piu' significativi: {' | '.join(paragrafi)}, "
         f"qui trovi le informazioni del candidato: {candidate_info}"
     )
+    return LLMHelper.create_prompt(context, user_question), filename
 
-    prompt = LLMHelper.create_prompt(context, user_question)
+
+def build_info_prompt(user_question, filename):
+    """Domanda su un candidato già trovato: si passa all'LLM il suo CV completo."""
+    path = os.path.join(Config.DOCUMENTS_DIR, filename)
+    if not os.path.exists(path):
+        return None
+    cv = "\n".join(DocumentProcessor.read_first_lines(path, 300))
+    return LLMHelper.create_info_prompt(f"nome file {filename}\n{cv}", user_question)
+
+
+@cl.on_message
+async def handle_message(message: cl.Message):
+    user_question = message.content
+    last_cv = cl.user_session.get("last_cv")
+
+    # 1. L'LLM capisce se l'utente cerca un CV o chiede info sul CV già trovato
+    intent = await LLMHelper.classify_intent(user_question, has_previous_cv=bool(last_cv))
+    print(f"Intento: {intent} | ultimo CV: {last_cv}")
+
+    # 2. Prompt in base all'intento
+    if intent == "info_cv" and last_cv:
+        prompt = build_info_prompt(user_question, last_cv)
+        if not prompt:
+            cl.user_session.set("last_cv", None)
+            await cl.Message("Il CV di cui parlavamo non è più disponibile: fai una nuova ricerca.").send()
+            return
+    else:
+        prompt, filename = build_search_prompt(user_question)
+        if not prompt:
+            await cl.Message(
+                "Nessun curriculum trovato per la tua richiesta.\n"
+                "Prova con parole chiave più specifiche (es. 'sviluppatore Python senior')."
+            ).send()
+            return
+        # Ricordiamo il CV trovato per le domande successive
+        cl.user_session.set("last_cv", filename)
 
     messages = cl.user_session.get("messages", [])
     messages.append({"role": "user", "content": prompt})

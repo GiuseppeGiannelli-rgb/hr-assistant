@@ -66,6 +66,16 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - `torch` e `sentence-transformers` sono nel gruppo opzionale `local`: si installano solo se servono
 - Nota: `all-MiniLM-L6-v2` conosce solo l'inglese e sui CV italiani sbaglia la ricerca, per questo il default è multilingue
 
+## Avanzamento 9 — User intent
+
+- Prima di rispondere l'LLM classifica la richiesta:
+  - `search_cv` — l'utente cerca un candidato → ricerca nel database come prima
+  - `info_cv` — l'utente chiede altro sul candidato appena trovato ("parla inglese?", "qual è la sua email?") → si risponde dal suo CV completo, senza nuova ricerca
+- Il CV trovato viene ricordato nella sessione della chat (`last_cv`)
+- Se non c'è ancora un candidato la domanda è sempre una ricerca: nessuna chiamata extra all'LLM
+- Prompt di classificazione con esempi e `temperature=0`, risposta letta in modo tollerante (i modelli piccoli aggiungono testo)
+- Messaggi chiari quando non si trova nessun CV
+
 ## Installazione
 
 ```bash
