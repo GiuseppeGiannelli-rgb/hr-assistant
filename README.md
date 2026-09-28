@@ -24,6 +24,16 @@ Progetto Poetry con Chainlit, ChromaDB e OpenAI SDK. L'app risponde ripetendo il
 
 Modelli locali alternativi: `ollama pull deepseek-r1:1.5b` e poi `OLLAMA_LLM_MODEL=deepseek-r1:1.5b` nel `.env`.
 
+## Avanzamento 4 — Persistenza e sincronizzazione dei documenti
+
+All'avvio la cartella `resumes/` viene confrontata con il database tramite l'hash MD5 di ogni file:
+
+- **file nuovi** → divisi in chunk e aggiunti
+- **file modificati** (hash diverso) → vecchi chunk rimossi, nuovi chunk aggiunti
+- **file eliminati** → chunk rimossi dal database
+
+Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutile degli embeddings.
+
 ## Installazione
 
 ```bash

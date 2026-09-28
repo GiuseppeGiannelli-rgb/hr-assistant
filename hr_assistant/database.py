@@ -25,13 +25,29 @@ class Database:
         )
 
     def add_documents(self, documents, metadatas, ids):
-        """Aggiunge solo i chunk non ancora presenti, così a ogni riavvio non si creano duplicati."""
-        existing = set(self.collection.get(ids=ids, include=[])["ids"])
-        new = [(d, m, i) for d, m, i in zip(documents, metadatas, ids) if i not in existing]
-        if new:
-            docs, metas, new_ids = map(list, zip(*new))
-            self.collection.add(documents=docs, metadatas=metas, ids=new_ids)
-        return len(new)
+        self.collection.add(documents=documents, metadatas=metadatas, ids=ids)
 
     def query(self, query_text, n_results=1):
         return self.collection.query(query_texts=[query_text], n_results=n_results)
+
+    def get_tracked_files(self):
+        """Restituisce i file già presenti nel DB con hash e data di modifica (uno per file)."""
+        result = self.collection.get(include=["metadatas"])
+        tracked_files = {}
+
+        for metadata in result["metadatas"] or []:
+            source = metadata.get("source")
+            if source and source not in tracked_files:
+                tracked_files[source] = {
+                    "hash": metadata.get("hash"),
+                    "last_modified": metadata.get("last_modified"),
+                    "source": source,
+                }
+
+        return tracked_files
+
+    def remove_document_by_source(self, source):
+        """Rimuove tutti i chunk che appartengono a un file."""
+        result = self.collection.get(where={"source": source}, include=[])
+        if result["ids"]:
+            self.collection.delete(ids=result["ids"])

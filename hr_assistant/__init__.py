@@ -14,13 +14,11 @@ from utils import LLMHelper  # noqa: E402
 
 print(Config.info())
 
-# Lettura e chunking dei documenti
-documents, metadatas, ids = DocumentProcessor.process_documents()
-
-# Inizializzazione del database e inserimento dei soli chunk nuovi
 db = Database()
-added = db.add_documents(documents, metadatas, ids)
-print(f"Chunk totali: {len(documents)} | nuovi aggiunti al DB: {added}")
+
+# Sincronizzazione tra la cartella dei CV e il database
+added, updated, removed = DocumentProcessor.process_documents(db)
+print(f"Sincronizzazione completata: {added} aggiunti, {updated} aggiornati, {removed} rimossi")
 
 
 @cl.on_chat_start

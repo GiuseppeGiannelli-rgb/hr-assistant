@@ -20,6 +20,7 @@ class Config:
     if PROVIDER == "openai":
         # Completamento
         LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+        LLM_MODEL_LOW = os.getenv("OPENAI_LLM_MODEL_LOW", "gpt-4o-mini")  # modello economico per task semplici
         AI_API_URL = "https://api.openai.com/v1/"
         AI_API_KEY = OPENAI_API_KEY
         # Embedding
@@ -27,6 +28,7 @@ class Config:
     else:
         # Completamento
         LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "llama3.2")  # oppure "deepseek-r1:1.5b"
+        LLM_MODEL_LOW = os.getenv("OLLAMA_LLM_MODEL_LOW", LLM_MODEL)
         AI_API_URL = f"{OLLAMA_URL}/v1"
         AI_API_KEY = "ollama"
         # Embedding

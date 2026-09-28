@@ -16,7 +16,7 @@ class LLMHelper:
     @staticmethod
     async def get_candidate_name(context):
         response = await client.chat.completions.create(
-            model=Config.LLM_MODEL,
+            model=Config.LLM_MODEL_LOW,
             messages=[
                 {
                     "role": "user",
