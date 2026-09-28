@@ -55,6 +55,17 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - Stesso risultato della versione precedente, codice più corto e leggibile
 - Il percentile si regola da `.env` con `CHUNK_BREAKPOINT_PERCENTILE`
 
+## Avanzamento 8 — Embedding intercambiabili (SentenceTransformer)
+
+- Nuovo modulo `custom_embedding.py`: un solo punto che crea la funzione di embedding per ChromaDB
+- `EMBEDDING_PROVIDER` nel `.env`, indipendente dal modello di chat:
+  - `openai` — API OpenAI
+  - `ollama` — modello servito da Ollama (default `bge-m3`)
+  - `local` — modello SentenceTransformer eseguito in Python, senza server (default `paraphrase-multilingual-MiniLM-L12-v2`)
+- Il modello locale viene scaricato la prima volta e salvato in `modelli/`: dalle volte successive funziona anche offline
+- `torch` e `sentence-transformers` sono nel gruppo opzionale `local`: si installano solo se servono
+- Nota: `all-MiniLM-L6-v2` conosce solo l'inglese e sui CV italiani sbaglia la ricerca, per questo il default è multilingue
+
 ## Installazione
 
 ```bash
@@ -63,6 +74,7 @@ ollama pull bge-m3        # solo con Ollama
 cp .env.example .env      # opzionale: serve solo per usare OpenAI
 poetry config virtualenvs.in-project true
 poetry install
+poetry install --with local   # solo per EMBEDDING_PROVIDER=local
 ```
 
 ## Esecuzione

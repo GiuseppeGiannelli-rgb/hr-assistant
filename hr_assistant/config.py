@@ -14,25 +14,33 @@ class Config:
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-    # Provider: "openai" o "ollama". Se non indicato: openai se c'è la chiave, altrimenti ollama
+    # Provider del modello di chat: "openai" o "ollama". Se non indicato: openai se c'è la chiave, altrimenti ollama
     PROVIDER = os.getenv("PROVIDER", "").strip().lower() or ("openai" if OPENAI_API_KEY else "ollama")
 
     if PROVIDER == "openai":
-        # Completamento
         LLM_MODEL = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
         LLM_MODEL_LOW = os.getenv("OPENAI_LLM_MODEL_LOW", "gpt-4o-mini")  # modello economico per task semplici
         AI_API_URL = "https://api.openai.com/v1/"
         AI_API_KEY = OPENAI_API_KEY
-        # Embedding
-        EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
     else:
-        # Completamento
         LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "llama3.2")  # oppure "deepseek-r1:1.5b"
         LLM_MODEL_LOW = os.getenv("OLLAMA_LLM_MODEL_LOW", LLM_MODEL)
         AI_API_URL = f"{OLLAMA_URL}/v1"
         AI_API_KEY = "ollama"
-        # Embedding
+
+    # Provider degli embedding, indipendente da quello della chat: "openai", "ollama" o "local" (SentenceTransformer)
+    EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "").strip().lower() or PROVIDER
+
+    if EMBEDDING_PROVIDER == "openai":
+        EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    elif EMBEDDING_PROVIDER == "local":
+        # Multilingue (capisce l'italiano). Alternative: all-MiniLM-L6-v2 (solo inglese, leggero), all-mpnet-base-v2
+        EMBED_MODEL = os.getenv("LOCAL_EMBED_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+    else:
         EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
+
+    # Cartella dove viene salvato il modello locale (solo con EMBEDDING_PROVIDER=local)
+    MODEL_PATH = os.path.join("modelli", EMBED_MODEL.replace("/", "-"))
 
     # Chunking: "semantic" (divide dove cambia il significato) oppure "headers" (divide sulle intestazioni '### ')
     CHUNKING = os.getenv("CHUNKING", "semantic").strip().lower()
@@ -41,11 +49,11 @@ class Config:
 
     # Una collezione per provider/modello/chunking: embeddings di modelli diversi non sono compatibili
     # e cambiando strategia di chunking i CV vanno reindicizzati da capo
-    COLLECTION_NAME = f"CVs_{PROVIDER}_{EMBED_MODEL}_{CHUNKING}".replace(":", "-").replace("/", "-")
+    COLLECTION_NAME = f"CVs_{EMBEDDING_PROVIDER}_{EMBED_MODEL}_{CHUNKING}".replace(":", "-").replace("/", "-")
 
     @classmethod
     def info(cls):
         return (
-            f"Provider: {cls.PROVIDER} | LLM: {cls.LLM_MODEL} | Embeddings: {cls.EMBED_MODEL} "
+            f"LLM: {cls.PROVIDER}/{cls.LLM_MODEL} | Embeddings: {cls.EMBEDDING_PROVIDER}/{cls.EMBED_MODEL} "
             f"| Chunking: {cls.CHUNKING}"
         )
