@@ -34,9 +34,18 @@ class Config:
         # Embedding
         EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 
-    # Una collezione per provider/modello: embeddings di modelli diversi non sono compatibili
-    COLLECTION_NAME = f"CVs_{PROVIDER}_{EMBED_MODEL}".replace(":", "-").replace("/", "-")
+    # Chunking: "semantic" (divide dove cambia il significato) oppure "headers" (divide sulle intestazioni '### ')
+    CHUNKING = os.getenv("CHUNKING", "semantic").strip().lower()
+    # Percentile delle distanze oltre il quale si crea un nuovo chunk: più basso = più chunk
+    CHUNK_BREAKPOINT_PERCENTILE = int(os.getenv("CHUNK_BREAKPOINT_PERCENTILE", "95"))
+
+    # Una collezione per provider/modello/chunking: embeddings di modelli diversi non sono compatibili
+    # e cambiando strategia di chunking i CV vanno reindicizzati da capo
+    COLLECTION_NAME = f"CVs_{PROVIDER}_{EMBED_MODEL}_{CHUNKING}".replace(":", "-").replace("/", "-")
 
     @classmethod
     def info(cls):
-        return f"Provider: {cls.PROVIDER} | LLM: {cls.LLM_MODEL} | Embeddings: {cls.EMBED_MODEL}"
+        return (
+            f"Provider: {cls.PROVIDER} | LLM: {cls.LLM_MODEL} | Embeddings: {cls.EMBED_MODEL} "
+            f"| Chunking: {cls.CHUNKING}"
+        )

@@ -41,6 +41,13 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - Nome, email e telefono vengono letti dalle prime righe del CV e passati nel prompt: eliminata la chiamata extra all'LLM per il nome
 - La risposta termina con la sezione contatti e il nome del file
 
+## Avanzamento 6 — Semantic Chunking
+
+- Nuovo modulo `semantic_chunking.py`: il testo viene diviso in frasi, ogni frase è unita alla precedente e alla successiva, si calcolano gli embedding e si taglia il chunk dove la distanza coseno tra frasi consecutive supera il 95° percentile
+- Gli embedding del chunking sono gli stessi del database (Ollama o OpenAI), quindi funziona con entrambi i provider
+- `CHUNKING=headers` nel `.env` torna al vecchio chunking sulle intestazioni `### `
+- Ogni strategia di chunking ha la sua collezione: cambiandola i CV vengono reindicizzati da capo
+
 ## Installazione
 
 ```bash

@@ -3,6 +3,7 @@ import hashlib
 import os
 
 from config import Config
+from semantic_chunking import SemanticChunking
 
 
 class DocumentProcessor:
@@ -30,8 +31,8 @@ class DocumentProcessor:
         }
 
     @staticmethod
-    def process_single_document(file_path):
-        """Divide un documento in chunk sulle intestazioni '### '."""
+    def process_single_document(file_path, embedding_fn):
+        """Divide un documento in chunk: semantico oppure sulle intestazioni '### ' (vedi Config.CHUNKING)."""
         documents = []
         metadatas = []
         ids = []
@@ -39,7 +40,12 @@ class DocumentProcessor:
         file_metadata = DocumentProcessor.get_document_metadata(file_path)
 
         with open(file_path, "r", encoding="utf-8") as file:
-            chunks = file.read().replace("\n", ".").split("### ")
+            txt = file.read()
+
+        if Config.CHUNKING == "headers":
+            chunks = txt.replace("\n", ".").split("### ")
+        else:
+            chunks = SemanticChunking.chunk_it(txt, embedding_fn)
 
         for i, chunk in enumerate(chunks):
             if not chunk.isspace() and not chunk == "":
@@ -79,7 +85,9 @@ class DocumentProcessor:
         for action, files in [("add", files_to_add), ("update", files_to_update)]:
             for filename in files:
                 file_path = os.path.join(Config.DOCUMENTS_DIR, filename)
-                documents, metadatas, ids = DocumentProcessor.process_single_document(file_path)
+                documents, metadatas, ids = DocumentProcessor.process_single_document(
+                    file_path, db.embedding_fn
+                )
 
                 if action == "update":
                     # Prima si rimuovono i vecchi chunk del file
