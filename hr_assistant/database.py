@@ -51,3 +51,16 @@ class Database:
         result = self.collection.get(where={"source": source}, include=[])
         if result["ids"]:
             self.collection.delete(ids=result["ids"])
+
+    def get_stats(self):
+        """Statistiche della collezione: nome, numero di chunk e numero di file indicizzati."""
+        result = self.collection.get(include=["metadatas"])
+        valori_distinti = set(m["source"] for m in result["metadatas"] or [])  # set = elimina i duplicati
+        numero_files = len(valori_distinti)
+
+        return f"""
+            Nome Collezione: {self.collection.name}
+            Numero totale Frammenti: {self.collection.count()}
+            Numero Files Elaborati: {numero_files}
+            Files: {", ".join(sorted(valori_distinti))}
+        """

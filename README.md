@@ -34,6 +34,13 @@ All'avvio la cartella `resumes/` viene confrontata con il database tramite l'has
 
 Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutile degli embeddings.
 
+## Avanzamento 5 — Pulsanti di sistema e prompt senza doppia chiamata
+
+- Pulsanti in chat: **Statistiche Database** (l'LLM descrive la collezione) e **Reindex Database** (risincronizza `resumes/` senza riavviare)
+- La ricerca recupera 3 chunk e usa quelli dello stesso CV del primo risultato
+- Nome, email e telefono vengono letti dalle prime righe del CV e passati nel prompt: eliminata la chiamata extra all'LLM per il nome
+- La risposta termina con la sezione contatti e il nome del file
+
 ## Installazione
 
 ```bash

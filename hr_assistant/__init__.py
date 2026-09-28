@@ -21,6 +21,23 @@ added, updated, removed = DocumentProcessor.process_documents(db)
 print(f"Sincronizzazione completata: {added} aggiunti, {updated} aggiornati, {removed} rimossi")
 
 
+@cl.action_callback("db_stats")
+async def on_db_stats(action: cl.Action):
+    """Pulsante 'Statistiche Database': l'LLM descrive lo stato della collezione."""
+    db_info = db.get_stats()
+    response = await LLMHelper.get_db_stats(db_info)
+    await cl.Message(response).send()
+
+
+@cl.action_callback("db_reindex")
+async def on_db_reindex(action: cl.Action):
+    """Pulsante 'Reindex Database': risincronizza la cartella dei CV senza riavviare l'app."""
+    added, updated, removed = DocumentProcessor.process_documents(db)
+    await cl.Message(
+        f"DB reindicizzato con successo: {added} aggiunti, {updated} aggiornati, {removed} rimossi."
+    ).send()
+
+
 @cl.on_chat_start
 async def start():
     cl.user_session.set(
@@ -37,22 +54,50 @@ async def start():
         ],
     )
 
+    actions = [
+        cl.Action(
+            name="db_stats",
+            icon="database",
+            payload={"value": "db_stats"},
+            label="Statistiche Database",
+        ),
+        cl.Action(
+            name="db_reindex",
+            icon="refresh-cw",
+            payload={"value": "db_reindex"},
+            label="Reindex Database",
+        ),
+    ]
+
+    await cl.Message(content="Informazioni del sistema:", actions=actions).send()
+
 
 @cl.on_message
 async def handle_message(message: cl.Message):
     user_question = message.content
-    results = db.query(user_question)
+    results = db.query(user_question, 3)
 
     filename = results["metadatas"][0][0]["source"]
-    context_lines = DocumentProcessor.read_first_lines(
-        os.path.join(Config.DOCUMENTS_DIR, filename), Config.N_FIRST_LINES
+
+    # Prime righe del CV: nome, email e telefono arrivano nel contesto,
+    # così non serve più una seconda chiamata all'LLM per ricavare il nome
+    candidate_info = DocumentProcessor.read_first_lines(
+        os.path.join(Config.DOCUMENTS_DIR, filename), 10
     )
 
-    context = f"CONTESTO: nome file {filename} ecco il paragrafo piu' significativo: {results['documents'][0][0]}"
+    # Tra i 3 chunk più vicini usiamo quelli dello stesso CV del primo risultato
+    paragrafi = [
+        doc
+        for doc, meta in zip(results["documents"][0], results["metadatas"][0])
+        if meta["source"] == filename
+    ]
 
-    candidate_name = await LLMHelper.get_candidate_name(context_lines)
+    context = (
+        f"CONTESTO: nome file {filename} ecco i paragrafi piu' significativi: {' | '.join(paragrafi)}, "
+        f"qui trovi le informazioni del candidato: {candidate_info}"
+    )
 
-    prompt = LLMHelper.create_prompt(context, user_question, candidate_name)
+    prompt = LLMHelper.create_prompt(context, user_question)
 
     messages = cl.user_session.get("messages", [])
     messages.append({"role": "user", "content": prompt})

@@ -14,24 +14,25 @@ class LLMHelper:
         )
 
     @staticmethod
-    async def get_candidate_name(context):
+    async def get_db_stats(context):
         response = await client.chat.completions.create(
             model=Config.LLM_MODEL_LOW,
             messages=[
                 {
                     "role": "user",
                     "content": (
-                        "Dato il seguente contesto individua il nome e cognome del candidato e ritorna "
-                        "solo il nome e cognome del candidato. Quello che sto per fornirti è l'inizio "
-                        f"del curriculum vitae del candidato: {context}"
+                        "Il tuo compito è quello di descrivere in modo testuale, ma sintetico, le statistiche "
+                        "legate al database dei frammenti indicizzati da questo sistema. Indica anche il numero "
+                        "medio di frammenti per file. Rispondi in italiano. Ecco le informazioni necessarie "
+                        f"per le statistiche da fornire: {context}"
                     ),
                 }
             ],
         )
-        return response.choices[0].message.content.strip()
+        return response.choices[0].message.content
 
     @staticmethod
-    def create_prompt(context, question, candidate_name):
+    def create_prompt(context, question):
         return f"""
             Dato il seguente contesto:
             [[[
@@ -39,8 +40,8 @@ class LLMHelper:
             ]]].
             Rispondi alla domanda dell'utente: [[[ {question} ]]].
             Spiega che nel file individuato c'e' il profilo piu' adatto.
-            Assicurati di nominare il nome del file.
-            Assicurati di indicare il nome del candidato: [[[ {candidate_name} ]]].
             Argomenta la scelta utilizzando il contenuto del testo individuato nel contesto.
+            Alla fine crea una sezione per i contatti del candidato indicando il nome, la sua email e il numero di telefono.
+            Dopo la sezione dei contatti indica il nome del file del cv, non lo nominare mai prima di questa sezione.
             Se non trovi corrispondenza in nessun cv non inventare.
         """
