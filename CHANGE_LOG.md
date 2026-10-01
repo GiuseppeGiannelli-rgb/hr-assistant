@@ -35,3 +35,10 @@
 - Possibilità di aggiungere uno o più file in `resumes/` dalla chat (graffetta): all'aggiunta si aggiorna il database degli embeddings
 - Nuova action per svuotare il database
 - Starters (suggerimenti iniziali) e pulsante "Ricalcola Statistiche"
+
+## 09 - Tema UI
+
+- Tema dei colori: `public/theme.json` (https://docs.chainlit.io/customisation/theme)
+- CSS personalizzato: `public/app.css`, collegato in `.chainlit/config.toml` con `custom_css` (https://docs.chainlit.io/customisation/custom-css)
+- Logo chiaro/scuro e favicon in `public/`
+- Avatar per autore: `cl.Message(author="hr_assistant", ...)` usa `public/avatars/hr_assistant.png` (https://docs.chainlit.io/customisation/avatars)

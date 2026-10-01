@@ -94,6 +94,16 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - Starters: suggerimenti cliccabili nella schermata iniziale
 - Messaggi chiari quando il database è vuoto
 
+## Avanzamento 12 — Personalizzazioni grafiche
+
+- **Tema**: `public/theme.json` definisce i colori (formato HSL) per tema chiaro e scuro; tema chiaro di default (`default_theme` in `.chainlit/config.toml`)
+- **CSS**: `public/app.css` collegato con `custom_css = "/public/app.css"`
+- **Logo e favicon** originali (persona dentro una lente = ricerca del candidato): `public/logo_light.png`, `public/logo_dark.png`, `public/favicon.png`, sorgente vettoriale in `public/brand/hr_assistant_mark.svg`. Chainlit li usa in automatico al posto dei propri
+- **Avatar**: ogni messaggio ha un autore — `hr_assistant` (lente blu) per le risposte sui candidati, `system_assistant` (database su fondo ardesia) per i messaggi di sistema — e Chainlit mostra `public/avatars/<autore>.png`
+- Reindex eseguito in background con un messaggio "Reindicizzazione in corso..."
+
+Dopo aver cambiato tema o CSS ricarica la pagina con `Ctrl + F5` (il browser tiene in cache i file di `public/`).
+
 ## Installazione
 
 ```bash

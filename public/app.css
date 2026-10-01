@@ -1,0 +1,12 @@
+/* CSS personalizzato, collegato in .chainlit/config.toml con custom_css = "/public/app.css"
+   https://docs.chainlit.io/customisation/custom-css */
+
+/* Testo segnaposto della casella dei messaggi ("Scrivi un messaggio...") nel colore primario del tema */
+.empty\:before\:text-muted-foreground:empty:before {
+    color: hsl(var(--primary)) !important;
+}
+
+/* Pulsanti di sistema (Statistiche, Reindex, Svuota) con angoli arrotondati */
+button[id^="db_"] {
+    border-radius: var(--radius) !important;
+}

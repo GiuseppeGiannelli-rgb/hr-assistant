@@ -13,6 +13,10 @@ from database import Database  # noqa: E402
 from document_processor import DocumentProcessor  # noqa: E402
 from utils import LLMHelper  # noqa: E402
 
+# Nomi degli autori dei messaggi: Chainlit mostra come avatar public/avatars/<autore>.png
+HR_AUTHOR = "hr_assistant"
+SYSTEM_AUTHOR = "system_assistant"
+
 print(Config.info())
 
 db = Database()
@@ -49,15 +53,17 @@ async def on_db_stats(action: cl.Action):
     ricalcola = [
         cl.Action(name="db_stats", icon="database", payload={"value": "db_stats"}, label="Ricalcola Statistiche Database")
     ]
-    await cl.Message(content=response, actions=ricalcola).send()
+    await cl.Message(author=SYSTEM_AUTHOR, content=response, actions=ricalcola).send()
 
 
 @cl.action_callback("db_reindex")
 async def on_db_reindex(action: cl.Action):
     """Pulsante 'Reindex Database': risincronizza la cartella dei CV senza riavviare l'app."""
-    added, updated, removed = DocumentProcessor.process_documents(db)
+    await cl.Message(author=SYSTEM_AUTHOR, content="Reindicizzazione in corso...").send()
+    added, updated, removed = await cl.make_async(DocumentProcessor.process_documents)(db)
     await cl.Message(
-        f"DB reindicizzato con successo: {added} aggiunti, {updated} aggiornati, {removed} rimossi."
+        author=SYSTEM_AUTHOR,
+        content=f"DB reindicizzato con successo: {added} aggiunti, {updated} aggiornati, {removed} rimossi."
     ).send()
 
 
@@ -67,7 +73,8 @@ async def on_db_remove(action: cl.Action):
     db.delete_collection()
     cl.user_session.set("last_cv", None)
     await cl.Message(
-        "Il database è stato completamente svuotato. Premi **Reindex Database** per reindicizzare i file.",
+        author=SYSTEM_AUTHOR,
+        content="Il database è stato completamente svuotato. Premi **Reindex Database** per reindicizzare i file.",
         actions=system_actions(),
     ).send()
 
@@ -115,6 +122,7 @@ async def start():
     )
 
     await cl.Message(
+        author=SYSTEM_AUTHOR,
         content=(
             "Informazioni del sistema. Puoi anche allegare CV (PDF, Word, Excel, ZIP...) "
             "con la graffetta: verranno salvati e indicizzati."
@@ -168,8 +176,8 @@ def build_info_prompt(user_question, filename):
 async def handle_message(message: cl.Message):
     # 0. File allegati: si salvano in resumes/ e si indicizzano
     if message.elements:
-        await cl.Message(content="Caricamento e indicizzazione dei documenti in corso...").send()
-        await cl.Message(content=await handle_uploads(message.elements)).send()
+        await cl.Message(author=SYSTEM_AUTHOR, content="Caricamento e indicizzazione dei documenti in corso...").send()
+        await cl.Message(author=SYSTEM_AUTHOR, content=await handle_uploads(message.elements)).send()
 
     user_question = message.content.strip()
     if not user_question:
@@ -185,19 +193,21 @@ async def handle_message(message: cl.Message):
         prompt = build_info_prompt(user_question, last_cv)
         if not prompt:
             cl.user_session.set("last_cv", None)
-            await cl.Message("Il CV di cui parlavamo non è più disponibile: fai una nuova ricerca.").send()
+            await cl.Message(author=HR_AUTHOR, content="Il CV di cui parlavamo non è più disponibile: fai una nuova ricerca.").send()
             return
     else:
         prompt, filename = build_search_prompt(user_question)
         if not prompt and db.collection.count() == 0:
             await cl.Message(
-                "Il database è vuoto: premi **Reindex Database** oppure allega dei CV.",
+                author=HR_AUTHOR,
+                content="Il database è vuoto: premi **Reindex Database** oppure allega dei CV.",
                 actions=system_actions(),
             ).send()
             return
         if not prompt:
             await cl.Message(
-                "Nessun curriculum trovato per la tua richiesta.\n"
+                author=HR_AUTHOR,
+                content="Nessun curriculum trovato per la tua richiesta.\n"
                 "Prova con parole chiave più specifiche (es. 'sviluppatore Python senior')."
             ).send()
             return
@@ -207,7 +217,7 @@ async def handle_message(message: cl.Message):
     messages = cl.user_session.get("messages", [])
     messages.append({"role": "user", "content": prompt})
 
-    response_message = cl.Message(content="")
+    response_message = cl.Message(author=HR_AUTHOR, content="")
     await response_message.send()
 
     try:
@@ -222,7 +232,7 @@ async def handle_message(message: cl.Message):
 
     except Exception as e:
         error_message = f"Si è verificato un errore: {e}"
-        await cl.Message(content=error_message).send()
+        await cl.Message(author=HR_AUTHOR, content=error_message).send()
         print(error_message)
         messages.pop()
 
