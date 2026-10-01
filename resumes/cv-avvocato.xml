@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<curriculum>
+  <nome>Riccardo Galli</nome>
+  <ruolo>Avvocato - Diritto del lavoro</ruolo>
+  <contatti><citta>Genova</citta><telefono>+39 338 1617181</telefono><email>riccardo.galli@email.it</email></contatti>
+  <profilo>Avvocato giuslavorista con 13 anni di esperienza in contenzioso, contratti collettivi e consulenza alle aziende.</profilo>
+  <esperienze><esperienza>Partner | Studio Legale Galli &amp; Associati | 2017 - Presente</esperienza><esperienza>Associate | Studio Legale Internazionale | 2011 - 2017</esperienza></esperienze>
+  <competenze><competenza>Contenzioso del lavoro</competenza><competenza>Licenziamenti e vertenze sindacali</competenza><competenza>Contratti collettivi</competenza><competenza>Privacy e GDPR</competenza><competenza>Due diligence</competenza></competenze>
+</curriculum>

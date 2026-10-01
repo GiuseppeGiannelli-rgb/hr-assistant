@@ -1,0 +1,21 @@
+{
+  "nome": "Sofia Bruno",
+  "ruolo": "Traduttrice e interprete",
+  "contatti": {
+    "citta": "Trieste",
+    "telefono": "+39 349 1415161",
+    "email": "sofia.bruno@email.it"
+  },
+  "profilo": "Traduttrice e interprete di conferenza con 12 anni di esperienza in traduzioni tecniche e legali inglese, tedesco e spagnolo.",
+  "esperienze": [
+    "Interprete freelance | Conferenze internazionali | 2014 - Presente",
+    "Traduttrice | Agenzia LinguaPro | 2012 - 2014"
+  ],
+  "competenze": [
+    "Inglese C2, Tedesco C1, Spagnolo C1",
+    "Interpretariato simultaneo",
+    "Traduzione giurata",
+    "SDL Trados",
+    "Localizzazione software"
+  ]
+}
