@@ -76,6 +76,15 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - Prompt di classificazione con esempi e `temperature=0`, risposta letta in modo tollerante (i modelli piccoli aggiungono testo)
 - Messaggi chiari quando non si trova nessun CV
 
+## Avanzamento 10 — Caricamento di file di tipo diverso
+
+- I CV in `resumes/` possono essere `.txt`, `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.csv`, `.html`, `.json`, `.xml` o `.zip`
+- Ogni file viene convertito in testo Markdown con **MarkItDown** (Microsoft) prima del chunking; gli ZIP vengono aperti e convertiti file per file
+- Nei metadati del DB si salvano anche tipo di file, MIME type ed estensione
+- Il semantic chunking divide anche i testi senza punti (tabelle Excel, elenchi dei PDF) usando a capo, `;`, `:` e virgole
+- Chunking più fine per i documenti lunghi: percentile 65 e 3 frasi di contesto (`CHUNK_BREAKPOINT_PERCENTILE`, `CHUNK_BUFFER_SIZE` nel `.env`)
+- Nome, contatti e CV completo vengono letti dal testo convertito, quindi funzionano anche con PDF e Word
+
 ## Installazione
 
 ```bash

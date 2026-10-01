@@ -106,7 +106,7 @@ def build_info_prompt(user_question, filename):
     path = os.path.join(Config.DOCUMENTS_DIR, filename)
     if not os.path.exists(path):
         return None
-    cv = "\n".join(DocumentProcessor.read_first_lines(path, 300))
+    cv = DocumentProcessor.read_document_text(path)[:8000]  # qualsiasi formato, limitato per il contesto del modello
     return LLMHelper.create_info_prompt(f"nome file {filename}\n{cv}", user_question)
 
 

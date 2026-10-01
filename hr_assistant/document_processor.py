@@ -1,16 +1,62 @@
 # document_processor.py
 import hashlib
+import mimetypes
 import os
+
+from markitdown import MarkItDown
 
 from config import Config
 from semantic_chunking import SemanticChunking
 
+# Convertitore unico: trasforma PDF, Word, PowerPoint, Excel, CSV, HTML, ZIP... in testo Markdown
+# https://github.com/microsoft/markitdown
+_md_converter = MarkItDown()
+
 
 class DocumentProcessor:
+    SUPPORTED_EXTENSIONS = {
+        # Documenti
+        ".txt": "text",
+        ".pdf": "document",
+        ".doc": "document",
+        ".docx": "document",
+        ".ppt": "presentation",
+        ".pptx": "presentation",
+        ".xls": "spreadsheet",
+        ".xlsx": "spreadsheet",
+        # Web
+        ".html": "web",
+        ".htm": "web",
+        # Dati
+        ".csv": "data",
+        ".json": "data",
+        ".xml": "data",
+        # Archivi: MarkItDown converte uno per uno i file contenuti
+        ".zip": "archive",
+    }
+
+    @staticmethod
+    def is_supported(filename):
+        return os.path.splitext(filename)[1].lower() in DocumentProcessor.SUPPORTED_EXTENSIONS
+
+    @staticmethod
+    def read_document_text(file_path):
+        """Testo del documento: i .txt si leggono direttamente, tutto il resto passa da MarkItDown."""
+        extension = os.path.splitext(file_path)[1].lower()
+        try:
+            if extension == ".txt":
+                with open(file_path, "r", encoding="utf-8") as file:
+                    return file.read()
+            return _md_converter.convert(file_path).text_content or ""
+        except Exception as e:
+            print(f"Errore nella conversione di {os.path.basename(file_path)}: {e}")
+            return ""
+
     @staticmethod
     def read_first_lines(file_path, n_lines=100):
-        with open(file_path, "r", encoding="utf-8") as file:
-            return [line.strip() for line, _ in zip(file, range(n_lines))]
+        """Prime n righe non vuote del documento (qualsiasi formato): lì ci sono nome e contatti."""
+        lines = [line.strip() for line in DocumentProcessor.read_document_text(file_path).splitlines()]
+        return [line for line in lines if line][:n_lines]
 
     @staticmethod
     def get_file_hash(file_path):
@@ -23,29 +69,40 @@ class DocumentProcessor:
 
     @staticmethod
     def get_document_metadata(file_path):
-        """Metadati del file: hash, data di ultima modifica e nome."""
+        """Metadati del file: hash, data di modifica, nome, tipo ed estensione."""
+        extension = os.path.splitext(file_path)[1].lower()
         return {
             "hash": DocumentProcessor.get_file_hash(file_path),
             "last_modified": os.path.getmtime(file_path),
             "source": os.path.basename(file_path),
+            "file_type": DocumentProcessor.SUPPORTED_EXTENSIONS.get(extension, "unknown"),
+            "mime_type": mimetypes.guess_type(file_path)[0] or "unknown",
+            "extension": extension,
         }
 
     @staticmethod
     def process_single_document(file_path, embedding_fn):
-        """Divide un documento in chunk: semantico oppure sulle intestazioni '### ' (vedi Config.CHUNKING)."""
+        """Converte il documento in testo e lo divide in chunk: semantico oppure sulle intestazioni '### '."""
         documents = []
         metadatas = []
         ids = []
 
-        file_metadata = DocumentProcessor.get_document_metadata(file_path)
+        if not DocumentProcessor.is_supported(file_path):
+            return documents, metadatas, ids
 
-        with open(file_path, "r", encoding="utf-8") as file:
-            txt = file.read()
+        txt = DocumentProcessor.read_document_text(file_path)
+        if not txt.strip():
+            print(f"Nessun testo estratto da {os.path.basename(file_path)}: file ignorato")
+            return documents, metadatas, ids
+
+        file_metadata = DocumentProcessor.get_document_metadata(file_path)
 
         if Config.CHUNKING == "headers":
             chunks = txt.replace("\n", ".").split("### ")
         else:
-            sc = SemanticChunking(embedding_fn, Config.CHUNK_BREAKPOINT_PERCENTILE)
+            sc = SemanticChunking(
+                embedding_fn, Config.CHUNK_BREAKPOINT_PERCENTILE, Config.CHUNK_BUFFER_SIZE
+            )
             chunks = sc.chunk_text(txt)
 
         for i, chunk in enumerate(chunks):
@@ -60,11 +117,13 @@ class DocumentProcessor:
     @staticmethod
     def process_documents(db):
         """Sincronizza la cartella dei CV con il database: aggiunge, aggiorna e rimuove solo ciò che è cambiato."""
-        # File attualmente presenti nella cartella
+        os.makedirs(Config.DOCUMENTS_DIR, exist_ok=True)
+
+        # File supportati attualmente presenti nella cartella
         current_files = {
             f: DocumentProcessor.get_document_metadata(os.path.join(Config.DOCUMENTS_DIR, f))
             for f in os.listdir(Config.DOCUMENTS_DIR)
-            if f.endswith(".txt")
+            if DocumentProcessor.is_supported(f)
         }
 
         # File già presenti nel database

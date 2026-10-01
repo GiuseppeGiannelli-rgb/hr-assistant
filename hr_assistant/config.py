@@ -45,11 +45,13 @@ class Config:
     # Chunking: "semantic" (divide dove cambia il significato) oppure "headers" (divide sulle intestazioni '### ')
     CHUNKING = os.getenv("CHUNKING", "semantic").strip().lower()
     # Percentile delle distanze oltre il quale si crea un nuovo chunk: più basso = più chunk
-    CHUNK_BREAKPOINT_PERCENTILE = int(os.getenv("CHUNK_BREAKPOINT_PERCENTILE", "95"))
+    CHUNK_BREAKPOINT_PERCENTILE = int(os.getenv("CHUNK_BREAKPOINT_PERCENTILE", "65"))
+    # Frasi prima e dopo usate come contesto nel calcolo delle distanze
+    CHUNK_BUFFER_SIZE = int(os.getenv("CHUNK_BUFFER_SIZE", "3"))
 
     # Una collezione per provider/modello/chunking: embeddings di modelli diversi non sono compatibili
     # e cambiando strategia di chunking i CV vanno reindicizzati da capo
-    COLLECTION_NAME = f"CVs_{EMBEDDING_PROVIDER}_{EMBED_MODEL}_{CHUNKING}".replace(":", "-").replace("/", "-")
+    COLLECTION_NAME = f"CVs_{EMBEDDING_PROVIDER}_{EMBED_MODEL}_{CHUNKING}_p{CHUNK_BREAKPOINT_PERCENTILE}b{CHUNK_BUFFER_SIZE}".replace(":", "-").replace("/", "-")
 
     @classmethod
     def info(cls):

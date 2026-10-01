@@ -23,11 +23,26 @@ class SemanticChunking:
         self.breakpoint_percentile = breakpoint_percentile
         self.buffer_size = buffer_size
 
+    def _split_into_sentences(self, text):
+        """
+        Divide il testo in frasi. PDF, Excel e Markdown spesso non hanno punti (elenchi, tabelle, titoli):
+        se con i segni di fine frase si ottiene una sola frase lunga, si divide anche su a capo, ';' e ':',
+        e come ultima risorsa sulle virgole. Così anche questi file producono più chunk.
+        """
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+
+        if len(sentences) <= 1 and len(text) > 100:
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?;:])\s+|\n+", text.strip()) if s.strip()]
+
+            if len(sentences) <= 1:
+                sentences = [s.strip() for s in text.split(",") if s.strip()]
+
+        return sentences or [text]
+
     def _process_sentences(self, text):
         # Divide il testo in frasi e crea una lista di dizionari con indici
         sentences = [
-            {"sentence": s, "index": i}
-            for i, s in enumerate(s for s in re.split(r"(?<=[.?!])\s+", text) if s.strip())
+            {"sentence": s, "index": i} for i, s in enumerate(self._split_into_sentences(text))
         ]
 
         # Combina ogni frase con il suo contesto (frasi precedenti e successive)
