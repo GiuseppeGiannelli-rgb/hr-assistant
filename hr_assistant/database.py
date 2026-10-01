@@ -12,9 +12,17 @@ class Database:
 
         # Client persistente: i dati restano salvati in data/chromadb tra un avvio e l'altro
         self.client = chromadb.PersistentClient(path=Config.PERSISTENT_DIR)
+        self._init_collection()
+
+    def _init_collection(self):
         self.collection = self.client.get_or_create_collection(
             name=Config.COLLECTION_NAME, embedding_function=self.embedding_fn
         )
+
+    def delete_collection(self):
+        """Svuota completamente il database: elimina la collezione e ne crea una nuova vuota."""
+        self.client.delete_collection(Config.COLLECTION_NAME)
+        self._init_collection()
 
     def add_documents(self, documents, metadatas, ids):
         self.collection.add(documents=documents, metadatas=metadatas, ids=ids)

@@ -85,6 +85,15 @@ Si elabora solo ciò che è cambiato: niente duplicati e nessun ricalcolo inutil
 - Chunking più fine per i documenti lunghi: percentile 65 e 3 frasi di contesto (`CHUNK_BREAKPOINT_PERCENTILE`, `CHUNK_BUFFER_SIZE` nel `.env`)
 - Nome, contatti e CV completo vengono letti dal testo convertito, quindi funzionano anche con PDF e Word
 
+## Avanzamento 11 — Upload dei file dalla chat e gestione del database
+
+- Allega uno o più CV con la graffetta della chat: vengono copiati in `resumes/` e indicizzati subito (un file con lo stesso nome viene sostituito e reindicizzato)
+- I formati non supportati vengono ignorati con un messaggio (tra questi i vecchi `.doc` e `.ppt`, che MarkItDown non legge: vanno salvati come `.docx`/`.pptx`); si può anche inviare un messaggio con soli allegati, senza domanda
+- Nuovo pulsante **Svuota completamente il Database**: elimina tutti i chunk (i file restano), poi si usa **Reindex Database**
+- Le statistiche hanno il pulsante **Ricalcola Statistiche Database**
+- Starters: suggerimenti cliccabili nella schermata iniziale
+- Messaggi chiari quando il database è vuoto
+
 ## Installazione
 
 ```bash

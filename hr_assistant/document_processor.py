@@ -14,13 +14,13 @@ _md_converter = MarkItDown()
 
 
 class DocumentProcessor:
+    # Nota: i vecchi formati binari .doc e .ppt NON sono supportati da MarkItDown
+    # (restituirebbero testo vuoto): vanno salvati come .docx / .pptx
     SUPPORTED_EXTENSIONS = {
         # Documenti
         ".txt": "text",
         ".pdf": "document",
-        ".doc": "document",
         ".docx": "document",
-        ".ppt": "presentation",
         ".pptx": "presentation",
         ".xls": "spreadsheet",
         ".xlsx": "spreadsheet",

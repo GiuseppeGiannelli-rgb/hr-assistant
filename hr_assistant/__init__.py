@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 # Chainlit esegue questo file come script: aggiungiamo la sua cartella al path
@@ -21,12 +22,34 @@ added, updated, removed = DocumentProcessor.process_documents(db)
 print(f"Sincronizzazione completata: {added} aggiunti, {updated} aggiornati, {removed} rimossi")
 
 
+def system_actions():
+    """Pulsanti di sistema mostrati in chat."""
+    return [
+        cl.Action(name="db_stats", icon="database", payload={"value": "db_stats"}, label="Statistiche Database"),
+        cl.Action(name="db_reindex", icon="refresh-cw", payload={"value": "db_reindex"}, label="Reindex Database"),
+        cl.Action(name="db_remove", icon="trash-2", payload={"value": "db_remove"}, label="Svuota completamente il Database"),
+    ]
+
+
+@cl.set_starters
+async def set_starters():
+    """Suggerimenti cliccabili mostrati nella schermata iniziale della chat."""
+    return [
+        cl.Starter(label="Ricerca candidato", message="Cercami un candidato che abbia le competenze di un saldatore"),
+        cl.Starter(label="Esperto di sicurezza", message="Mi serve un esperto di sicurezza informatica certificato CEH"),
+        cl.Starter(label="Marketing", message="Mi serve qualcuno per promuovere il mio prodotto"),
+    ]
+
+
 @cl.action_callback("db_stats")
 async def on_db_stats(action: cl.Action):
     """Pulsante 'Statistiche Database': l'LLM descrive lo stato della collezione."""
     db_info = db.get_stats()
     response = await LLMHelper.get_db_stats(db_info)
-    await cl.Message(response).send()
+    ricalcola = [
+        cl.Action(name="db_stats", icon="database", payload={"value": "db_stats"}, label="Ricalcola Statistiche Database")
+    ]
+    await cl.Message(content=response, actions=ricalcola).send()
 
 
 @cl.action_callback("db_reindex")
@@ -36,6 +59,43 @@ async def on_db_reindex(action: cl.Action):
     await cl.Message(
         f"DB reindicizzato con successo: {added} aggiunti, {updated} aggiornati, {removed} rimossi."
     ).send()
+
+
+@cl.action_callback("db_remove")
+async def on_db_remove(action: cl.Action):
+    """Pulsante 'Svuota Database': cancella tutti i chunk (i file in resumes/ restano)."""
+    db.delete_collection()
+    cl.user_session.set("last_cv", None)
+    await cl.Message(
+        "Il database è stato completamente svuotato. Premi **Reindex Database** per reindicizzare i file.",
+        actions=system_actions(),
+    ).send()
+
+
+async def handle_uploads(elements):
+    """Salva in resumes/ i file allegati al messaggio e aggiorna il database. Restituisce il riepilogo."""
+    os.makedirs(Config.DOCUMENTS_DIR, exist_ok=True)
+    saved, skipped = [], []
+
+    for file in elements:
+        if not getattr(file, "path", None):
+            continue
+        if not DocumentProcessor.is_supported(file.name):
+            skipped.append(file.name)
+            continue
+        shutil.copy(file.path, os.path.join(Config.DOCUMENTS_DIR, os.path.basename(file.name)))
+        saved.append(file.name)
+
+    lines = []
+    if saved:
+        # La sincronizzazione indicizza i file nuovi e reindicizza quelli sostituiti (hash diverso)
+        added, updated, removed = await cl.make_async(DocumentProcessor.process_documents)(db)
+        lines.append(f"Caricati {len(saved)} file: {', '.join(saved)}")
+        lines.append(f"Database aggiornato: {added} aggiunti, {updated} aggiornati, {removed} rimossi.")
+    if skipped:
+        estensioni = ", ".join(sorted(DocumentProcessor.SUPPORTED_EXTENSIONS))
+        lines.append(f"File non supportati (ignorati): {', '.join(skipped)}. Formati accettati: {estensioni}")
+    return "\n".join(lines) or "Nessun file caricato."
 
 
 @cl.on_chat_start
@@ -54,26 +114,20 @@ async def start():
         ],
     )
 
-    actions = [
-        cl.Action(
-            name="db_stats",
-            icon="database",
-            payload={"value": "db_stats"},
-            label="Statistiche Database",
+    await cl.Message(
+        content=(
+            "Informazioni del sistema. Puoi anche allegare CV (PDF, Word, Excel, ZIP...) "
+            "con la graffetta: verranno salvati e indicizzati."
         ),
-        cl.Action(
-            name="db_reindex",
-            icon="refresh-cw",
-            payload={"value": "db_reindex"},
-            label="Reindex Database",
-        ),
-    ]
-
-    await cl.Message(content="Informazioni del sistema:", actions=actions).send()
+        actions=system_actions(),
+    ).send()
 
 
 def build_search_prompt(user_question):
     """Cerca il CV più adatto e prepara il prompt. Restituisce (prompt, nome file) oppure (None, None)."""
+    if db.collection.count() == 0:
+        return None, None  # database vuoto: niente da cercare
+
     results = db.query(user_question, 3)
 
     if not results["documents"] or not results["documents"][0]:
@@ -112,7 +166,14 @@ def build_info_prompt(user_question, filename):
 
 @cl.on_message
 async def handle_message(message: cl.Message):
-    user_question = message.content
+    # 0. File allegati: si salvano in resumes/ e si indicizzano
+    if message.elements:
+        await cl.Message(content="Caricamento e indicizzazione dei documenti in corso...").send()
+        await cl.Message(content=await handle_uploads(message.elements)).send()
+
+    user_question = message.content.strip()
+    if not user_question:
+        return  # solo upload, nessuna domanda
     last_cv = cl.user_session.get("last_cv")
 
     # 1. L'LLM capisce se l'utente cerca un CV o chiede info sul CV già trovato
@@ -128,6 +189,12 @@ async def handle_message(message: cl.Message):
             return
     else:
         prompt, filename = build_search_prompt(user_question)
+        if not prompt and db.collection.count() == 0:
+            await cl.Message(
+                "Il database è vuoto: premi **Reindex Database** oppure allega dei CV.",
+                actions=system_actions(),
+            ).send()
+            return
         if not prompt:
             await cl.Message(
                 "Nessun curriculum trovato per la tua richiesta.\n"
